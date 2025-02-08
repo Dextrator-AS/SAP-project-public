@@ -1,0 +1,54 @@
+import pandas as pd
+
+# Funktion, um zu prüfen, ob Aktivitätsziele konsistent erreicht werden
+def check_activity_goals(file_path, activity_goal_column, daily_activity_column):
+    """
+    Überprüft, ob die Aktivitätsziele in der Oura-Datendatei konsistent erreicht wurden.
+
+    Args:
+        file_path (str): Pfad zur Datei mit den Aktivitätsdaten (CSV oder Excel).
+        activity_goal_column (str): Name der Spalte für das Aktivitätsziel (z. B. 'Activity Goal').
+        daily_activity_column (str): Name der Spalte für die täglichen Aktivitäten (z. B. 'Daily Activity').
+
+    Returns:
+        tuple: (Prozentsatz der Zielerreichung, DataFrame mit Tagen, an denen das Ziel nicht erreicht wurde)
+    """
+    # Datei einlesen
+    try:
+        data = pd.read_csv(file_path)  # Alternativ pd.read_excel(file_path) für Excel-Dateien
+    except Exception as e:
+        print(f"Fehler beim Einlesen der Datei: {e}")
+        return
+
+    # Prüfen, ob die notwendigen Spalten existieren
+    if activity_goal_column not in data.columns or daily_activity_column not in data.columns:
+        print("Die erforderlichen Spalten fehlen in der Datei.")
+        return
+
+    # Neue Spalte hinzufügen: Ziel erreicht (True/False)
+    data['Goal Met'] = data[daily_activity_column] >= data[activity_goal_column]
+
+    # Prozentsatz der Tage, an denen das Ziel erreicht wurde
+    goal_met_percentage = (data['Goal Met'].mean()) * 100
+
+    # Daten der Tage herausfiltern, an denen das Ziel nicht erreicht wurde
+    missed_goals = data[~data['Goal Met']]
+
+    # Ergebnisse ausgeben
+    print(f"Prozentsatz der Tage, an denen das Ziel erreicht wurde: {goal_met_percentage:.2f}%")
+    print(f"Anzahl der Tage, an denen das Ziel nicht erreicht wurde: {len(missed_goals)}")
+
+    return goal_met_percentage, missed_goals
+
+# Beispiel: Dateipfad und Spaltennamen anpassen
+file_path = 'activity_data.csv'  # Ersetze durch den Pfad zur Datei
+activity_goal_column = 'Activity Goal'  # Spaltenname für Aktivitätsziel
+daily_activity_column = 'Daily Activity'  # Spaltenname für tägliche Aktivität
+
+# Funktion aufrufen
+goal_met_percentage, missed_goals = check_activity_goals(file_path, activity_goal_column, daily_activity_column)
+
+# Optional: Speichere die Tage mit verfehlten Zielen in eine neue CSV-Datei
+if missed_goals is not None and not missed_goals.empty:
+    missed_goals.to_csv('missed_goals.csv', index=False)
+    print("Tage mit verfehlten Zielen wurden in 'missed_goals.csv' gespeichert.")
